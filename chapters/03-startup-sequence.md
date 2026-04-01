@@ -42,9 +42,9 @@ flowchart TD
 ## 本章在学习路线中的位置
 
 这一章属于第二阶段，是“把系统真正跑起来”必须先跨过去的一步。  
-如果学生不知道程序如何从入口文件一路走到 REPL，那么后面看到 `QueryEngine`、`Tool`、`AppState` 时，就会像是在看一台已经发动起来的机器，却不知道发动机是怎么点火的。
+如果读者不知道程序如何从入口文件一路走到 REPL，那么后面看到 `QueryEngine`、`Tool`、`AppState` 时，就会像是在看一台已经发动起来的机器，却不知道发动机是怎么点火的。
 
-## 学生在这一章最容易看漏的三件事
+## 读者在这一章最容易看漏的三件事
 
 ### 第一，不要把启动理解成“找到 main 函数”
 
@@ -61,7 +61,7 @@ flowchart TD
 
 ### 第三，不要忽略启动阶段里的“工程化意图”
 
-像 profiler、keychain prefetch、lazy require、feature gate 这些写法，都是工程系统非常值得学生学习的部分。
+像 profiler、keychain prefetch、lazy require、feature gate 这些写法，都是工程系统非常值得读者学习的部分。
 
 ## 建议的阅读顺序
 
@@ -150,7 +150,7 @@ sequenceDiagram
     M->>R: renderAndRun(REPL)
 ```
 
-## 3.6 启动优化值得学生注意的地方
+## 3.6 启动优化值得读者注意的地方
 
 ### 1. 提前触发慢 I/O
 
