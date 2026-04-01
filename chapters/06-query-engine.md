@@ -193,7 +193,7 @@ sequenceDiagram
 
 ## 6.8 `buildQueryConfig()` 的价值
 
-`query/config.ts` 看起来很小，但非常有教学价值。  
+`query/config.ts` 看起来很小，但非常有阅读价值。  
 它把 session、env、statsig gate 这些“每轮固定配置”集中快照下来，避免循环中多次动态读取。
 
 这是一种很典型的工程技巧：
@@ -214,9 +214,9 @@ sequenceDiagram
 
 这说明 `query.ts` 是调度层，而 `claude.ts` 是通信层。
 
-## 6.10 教学时应突出什么
+## 6.10 本章最该记住什么
 
-讲这章时，最应该让学生明白的是：
+读这章时，最应该让自己明白的是：
 
 - 一轮查询不等于一次 API 调用
 - 有工具调用时，会形成“模型 -> 工具 -> 模型”的回路

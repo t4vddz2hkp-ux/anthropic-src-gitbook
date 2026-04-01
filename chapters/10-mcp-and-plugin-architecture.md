@@ -71,7 +71,7 @@
 - 处理 `.mcp.json`
 - 处理 enterprise managed MCP 文件
 
-特别值得课堂讲的是 `getMcpServerSignature()` 和 `dedupPluginMcpServers()`：  
+特别值得细读的是 `getMcpServerSignature()` 和 `dedupPluginMcpServers()`：  
 它们说明扩展系统已经考虑到了“不同来源声明的是不是同一个服务器”这一类真实工程问题。
 
 ## 10.4 插件系统的结构

@@ -91,7 +91,7 @@
 
 > DO NOT ADD MORE STATE HERE - BE JUDICIOUS WITH GLOBAL STATE
 
-这句话非常有教学意义。  
+这句话非常有启发性。  
 它说明作者知道全局状态危险，但仍然需要一个集中地点保存“真正属于会话运行时”的核心值。
 
 ### 可以把它理解成什么
@@ -137,7 +137,7 @@
 
 ## 18.5 `onChangeAppState.ts`：状态变化的同步器
 
-[onChangeAppState.ts](src/state/onChangeAppState.ts) 是一个很值得课堂精讲的小文件。
+[onChangeAppState.ts](src/state/onChangeAppState.ts) 是一个很值得精读的小文件。
 
 ### 它说明了什么
 
@@ -196,7 +196,7 @@
 
 ## 18.8 为什么 transcript 不记录一切
 
-这是很多学生第一次接触时最容易忽略的点。
+这是很多读者第一次接触时最容易忽略的点。
 
 ### 直觉上的错误想法
 
@@ -240,9 +240,9 @@ flowchart TD
 
 这样记虽然不精细，但非常有助于入门。
 
-## 18.11 教师课堂提问建议
+## 18.11 本章自测问题
 
-可以直接问学生：
+读完之后，直接问自己：
 
 1. 为什么 `AppState` 不是全局状态的全部？
 2. 为什么要有 `onChangeAppState` 这种状态同步器？
