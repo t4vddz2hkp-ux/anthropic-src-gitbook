@@ -1,5 +1,8 @@
 {
   "title": "Anthropic src 源码教科书（深度研究版）",
   "language": "zh-hans",
-  "author": "OpenAI Codex"
+  "author": "OpenAI Codex",
+  "plugins": [
+    "local-mermaid"
+  ]
 }

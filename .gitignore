@@ -1,3 +1,5 @@
 .DS_Store
 _book/
+dist/
 node_modules/
+plugins/honkit-plugin-local-mermaid/assets/mermaid.min.js

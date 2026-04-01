@@ -85,14 +85,14 @@
 
 ## 这本书解决什么问题
 
-这不是一份“文件注释汇编”，而是一份真正面向普通读者的源码教材。它试图回答四个问题：
+这不是一份“文件注释汇编”，而是一份真正的源码教材。它试图回答四个问题：
 
 1. 这个 `src` 目录整体上在构建一个什么系统？
 2. 这个系统是如何从“用户输入”一路运行到“模型响应、工具执行、结果回写”的？
 3. 为什么它会拆成 `commands`、`tools`、`tasks`、`services`、`utils`、`ink`、`mcp`、`plugins` 这些层？
 4. 如果要系统读懂它，应该按什么顺序阅读，重点抓哪些文件？
 
-为了让读者能逐步进入状态，这本书采用了“先给全局地图，再走一条主链路，最后做模块百科、训练任务和通关考核”的写法。也就是说，读者不需要一上来就懂 `QueryEngine`、`MCP` 或 `Ink`，我们会先解释这些名词为什么会出现、各自解决什么问题，然后再进入代码。
+为保证知识递进，这本书采用了“先给全局地图，再走一条主链路，最后做模块百科、训练任务和通关考核”的写法。也就是说，不必一上来就完全理解 `QueryEngine`、`MCP` 或 `Ink`，书中会先解释这些名词为什么会出现、各自解决什么问题，然后再进入代码。
 
 ## 分析边界
 
@@ -104,7 +104,7 @@
 
 ## 源码体量概览
 
-为了让读者对学习对象的难度有直观认识，先看本次分析范围 `src` 的代码规模：
+为便于把握分析对象的规模，先看本次分析范围 `src` 的代码体量：
 
 - 可计作代码的源码文件共 `1902` 个。
 - `.ts` 文件约 `379,997` 行。
@@ -113,6 +113,41 @@
 - 合计约 `512,685` 行代码。
 
 这意味着本系统绝不是“几天扫一眼目录就能懂”的小项目，而是一套体量很大的终端 Agent 工程。正因为如此，全书采用分阶段推进，而不是文件平铺式讲解。
+
+## 本地构建与导出
+
+本仓库已经补齐基于 `HonKit` 的本地构建链，可直接用于预览、静态构建和电子书导出。
+
+### 环境要求
+
+- `Node.js` 22 或更高版本
+- `npm` 10 或更高版本
+- 如需导出 `pdf`、`epub`、`mobi`，还需要安装 [Calibre](https://calibre-ebook.com/) 并确保 `ebook-convert` 在命令行中可用
+
+### 常用命令
+
+```bash
+npm install
+npm run book:serve
+npm run book:build
+npm run book:pdf
+npm run book:epub
+npm run book:mobi
+```
+
+### 输出位置
+
+- `npm run book:serve`：启动本地预览服务
+- `npm run book:build`：生成 HTML 站点到 `_book/`
+- `npm run book:pdf`：生成 `dist/anthropic-src-gitbook.pdf`
+- `npm run book:epub`：生成 `dist/anthropic-src-gitbook.epub`
+- `npm run book:mobi`：生成 `dist/anthropic-src-gitbook.mobi`
+
+### 说明
+
+- 导出脚本会在执行前自动检查 `ebook-convert`。
+- 若本地仅需预览或静态部署，只执行 `npm install` 与 `npm run book:build` 即可。
+- `HonKit` 版本已在 `package.json` 中固定，便于长期复现。
 
 ## 先给出结论
 

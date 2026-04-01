@@ -1,0 +1,21 @@
+{
+  "name": "anthropic-src-gitbook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A HonKit textbook for the Anthropic src codebase.",
+  "scripts": {
+    "postinstall": "bash ./scripts/sync-mermaid-asset.sh",
+    "book:clean": "rm -rf _book dist",
+    "book:build": "bash ./scripts/book-build.sh",
+    "book:serve": "bash ./scripts/book-serve.sh",
+    "book:parse": "honkit parse .",
+    "book:pdf": "bash ./scripts/book-export.sh pdf",
+    "book:epub": "bash ./scripts/book-export.sh epub",
+    "book:mobi": "bash ./scripts/book-export.sh mobi"
+  },
+  "devDependencies": {
+    "honkit": "6.1.7",
+    "honkit-plugin-local-mermaid": "file:./plugins/honkit-plugin-local-mermaid",
+    "mermaid": "11.13.0"
+  }
+}
