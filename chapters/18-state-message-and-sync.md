@@ -1,5 +1,44 @@
 # 第 18 章 状态系统、消息系统与会话状态同步
 
+## 本章目标
+- 把 bootstrap state、AppState、消息列表与 transcript 这几层状态彻底区分开。
+- 理解状态变化为什么不是简单赋值，而常常伴随副作用同步。
+- 建立“消息也是状态系统的一部分”的视角。
+
+## 先修关系
+- 建议先读第 4、5、6 章，先知道 UI 状态、消息对象和 query 主循环分别长什么样。
+- 如果第 11 章已经读过，你会更自然地理解 transcript 和压缩为什么是状态治理问题。
+- 本章和第 30 章是姊妹篇：本章重在状态层次与同步，第 30 章重在持久化与恢复。
+
+## 关键词
+- `bootstrap state`：进程或会话启动期的基础全局状态。
+- `AppState`：应用与 UI 运行态的主状态树。
+- `message list`：当前会话正在流动的结构化消息历史。
+- `onChangeAppState`：把状态变更翻译成副作用同步的桥。
+- `transcript`：只记录可恢复事实而不记录所有过程噪音。
+
+## 正文图解
+```mermaid
+flowchart TD
+    A["bootstrap state"]
+    B["AppState"]
+    C["消息列表"]
+    D["onChangeAppState 同步"]
+    E["transcript 持久化"]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+```
+
+## 关键数据结构
+| 结构/对象 | 在本章中的位置 | 阅读时要抓什么 |
+| --- | --- | --- |
+| `Bootstrap State Object` | 保存 sessionId、cwd、model 等基础坐标。 | 它回答“系统现在是谁、在哪、开什么模式”。 |
+| `AppState Tree` | UI、任务、MCP、权限等应用态集合。 | 它是 REPL 交互层最重要的状态容器。 |
+| `Message Array` | 用户、assistant、tool_result 等消息的有序集合。 | 它是 query、UI 与持久化之间的共同语言。 |
+| `State Sync Side Effect` | 由状态变化触发的外部写回或通知。 | 它解释为什么状态不是纯内存对象。 |
+
 ## 本章在第四阶段中的位置
 
 这一章属于第四阶段，是学生把“系统会跑”升级为“系统怎样持续保持一致”的关键一章。
@@ -249,10 +288,14 @@ flowchart TD
 3. 为什么 progress message 不应该无脑持久化？
 4. `bootstrap/state.ts` 和 React store 的定位有何不同？
 
-## 18.12 本章小结
+## 章末小结
+- 本章围绕“三层状态、消息系统和副作用同步”重建了一层稳定理解，不让你只记零散函数名或目录名。
+- 真正需要沉淀下来的，不只是 `bootstrap state`、`AppState`、`message list` 这几个词，而是它们在 `Bootstrap State Object`、`AppState Tree`、`Message Array` 里的相互位置。
+- 如果你后续在 第 30 章和第 11 章 中再次迷路，优先回看本章的“先修关系、正文图解、关键数据结构”三部分。
 
-这一章的核心不是背字段，而是建立一个正确的状态观：
-
-> 大型交互式系统的状态通常分层存在；运行时全局状态、UI 状态和消息状态既相关又不能混同。
-
-读懂这一点之后，读后面的 REPL、Task、sessionStorage 都会轻松很多。
+## 章末自测
+1. 不看原文，用自己的话重述本章围绕“三层状态、消息系统和副作用同步”到底解决了什么问题。
+2. 结合“正文图解”，把 `AppState` 到 `onChangeAppState 同步` 之间的连接关系重新讲一遍。
+3. 对比 `Bootstrap State Object` 与 `AppState Tree`：它们分别回答什么问题，边界为什么不能混掉？
+4. 在 `bootstrap state`、`AppState`、`message list` 中任选两个，说明它们在本章中是如何互相作用的。
+5. 如果后续要继续读 第 30 章和第 11 章，本章哪一部分最值得先回看？为什么？
