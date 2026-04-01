@@ -73,7 +73,7 @@ flowchart TD
 
 ## 17.2 `types/command.ts`：命令协议
 
-理解命令系统，最好的入口不是 `commands.ts`，而是 [types/command.ts](src/types/command.ts)。
+理解命令系统，最好的入口不是 `commands.ts`，而是 `src/types/command.ts`。
 
 这里给出了一个很清晰的事实：
 
@@ -148,7 +148,7 @@ flowchart TD
 
 ## 17.4 `commands.ts`：命令注册中心
 
-[commands.ts](src/commands.ts) 是命令系统的装配器。
+`src/commands.ts` 是命令系统的装配器。
 
 ### 它做了三件关键事情
 

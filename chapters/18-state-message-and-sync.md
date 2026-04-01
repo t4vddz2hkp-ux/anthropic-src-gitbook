@@ -82,7 +82,7 @@ flowchart TD
 
 ### 第一层：启动/会话级全局状态
 
-入口文件是 [bootstrap/state.ts](src/bootstrap/state.ts)。
+入口文件是 `src/bootstrap/state.ts`。
 
 这里保存的内容很多，例如：
 
@@ -100,7 +100,7 @@ flowchart TD
 
 ### 第二层：UI/AppState
 
-入口在 [state/AppStateStore.ts](src/state/AppStateStore.ts)。
+入口在 `src/state/AppStateStore.ts`。
 
 这里关注的是：
 
@@ -176,7 +176,7 @@ flowchart TD
 
 ## 18.5 `onChangeAppState.ts`：状态变化的同步器
 
-[onChangeAppState.ts](src/state/onChangeAppState.ts) 是一个很值得精读的小文件。
+`src/state/onChangeAppState.ts` 是一个很值得精读的小文件。
 
 ### 它说明了什么
 
@@ -208,7 +208,7 @@ flowchart TD
 
 ## 18.7 `utils/messages.ts` 的角色
 
-[utils/messages.ts](src/utils/messages.ts) 的体量本身就说明了它的重要性。
+`src/utils/messages.ts` 的体量本身就说明了它的重要性。
 
 它主要做三类事：
 
@@ -243,7 +243,7 @@ flowchart TD
 
 ### 实际设计
 
-[sessionStorage.ts](src/utils/sessionStorage.ts) 明确区分：
+`src/utils/sessionStorage.ts` 明确区分：
 
 - 哪些消息是 transcript message
 - 哪些只是 UI 过程状态，例如高频 progress

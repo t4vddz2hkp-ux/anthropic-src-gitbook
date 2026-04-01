@@ -77,7 +77,7 @@ flowchart TD
 
 ## 16.2 第一步：请求进入 REPL
 
-主界面是 [REPL.tsx](src/screens/REPL.tsx)。  
+主界面是 `src/screens/REPL.tsx`。  
 从产品视角看，用户只是在输入框里敲字；但从系统视角看，REPL 做了很多准备工作：
 
 - 当前主题是什么
@@ -91,7 +91,7 @@ flowchart TD
 
 ## 16.3 第二步：输入进入 `processUserInput()`
 
-REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUserInput/processUserInput.ts)。
+REPL 收到输入后，会把它交给 `src/utils/processUserInput/processUserInput.ts`。
 
 此时系统首先要回答的不是“如何回复”，而是“这到底是什么输入”：
 
@@ -122,7 +122,7 @@ REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUs
 
 ## 16.5 第四步：QueryEngine 接管这一轮
 
-接下来，请求会进入 [QueryEngine.ts](src/QueryEngine.ts)。
+接下来，请求会进入 `src/QueryEngine.ts`。
 
 ### 这里最容易讲错的地方
 
@@ -137,7 +137,7 @@ REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUs
 
 ## 16.6 第五步：`query()` 进入主循环
 
-这一轮真正的核心逻辑发生在 [query.ts](src/query.ts) 中。
+这一轮真正的核心逻辑发生在 `src/query.ts` 中。
 
 可把它想成一个总控循环：
 
@@ -193,7 +193,7 @@ REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUs
 
 ## 16.9 第八步：发起流式模型请求
 
-真正发请求时，`query.ts` 会调用 [services/api/claude.ts](src/services/api/claude.ts)。
+真正发请求时，`query.ts` 会调用 `src/services/api/claude.ts`。
 
 ### 这一层做了什么
 
@@ -237,9 +237,9 @@ REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUs
 
 一旦 `tool_use` 出现，系统就会进入 `services/tools/`：
 
-- [toolOrchestration.ts](src/services/tools/toolOrchestration.ts)
-- [toolExecution.ts](src/services/tools/toolExecution.ts)
-- [StreamingToolExecutor.ts](src/services/tools/StreamingToolExecutor.ts)
+- `src/services/tools/toolOrchestration.ts`
+- `src/services/tools/toolExecution.ts`
+- `src/services/tools/StreamingToolExecutor.ts`
 
 ### 它们的分工
 
@@ -250,7 +250,7 @@ REPL 收到输入后，会把它交给 [processUserInput.ts](src/utils/processUs
 ## 16.12 第十一步：具体工具开始执行
 
 假设模型调用了 BashTool 跑测试命令。  
-系统会进入 [BashTool.tsx](src/tools/BashTool/BashTool.tsx)。
+系统会进入 `src/tools/BashTool/BashTool.tsx`。
 
 这时又发生了几个层次的动作：
 

@@ -95,7 +95,7 @@ flowchart TD
 
 ## 19.3 `client.ts`：不是一个普通 client 工厂
 
-[client.ts](src/services/api/client.ts) 展示了很典型的平台化 API 适配写法。
+`src/services/api/client.ts` 展示了很典型的平台化 API 适配写法。
 
 ### 它支持多种后端提供者
 
@@ -122,7 +122,7 @@ flowchart TD
 
 ## 19.4 `claude.ts`：模型通信核心
 
-[claude.ts](src/services/api/claude.ts) 是整条模型通信链最关键的文件之一。
+`src/services/api/claude.ts` 是整条模型通信链最关键的文件之一。
 
 ### 为什么它这么大
 
@@ -201,7 +201,7 @@ flowchart TD
 ## 19.8 `StreamingToolExecutor.ts` 为什么存在
 
 如果工具调用只会在完整 assistant 响应结束后统一出现，那么普通调度器就够了。  
-但这里工具可能“边流进来边开始执行”，于是就需要 [StreamingToolExecutor.ts](src/services/tools/StreamingToolExecutor.ts)。
+但这里工具可能“边流进来边开始执行”，于是就需要 `src/services/tools/StreamingToolExecutor.ts`。
 
 ### 它解决的是什么问题
 

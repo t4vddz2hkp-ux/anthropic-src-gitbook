@@ -249,7 +249,7 @@ flowchart TD
 ### 这个模块做什么
 
 它是“全局运行时状态模块”。  
-最关键文件是 [bootstrap/state.ts](src/bootstrap/state.ts)。
+最关键文件是 `src/bootstrap/state.ts`。
 
 ### 为什么重要
 
@@ -320,7 +320,7 @@ flowchart TD
 ### 这个模块做什么
 
 它是用户命令实现的主要容器。  
-而 [commands.ts](src/commands.ts) 则是命令注册中心。
+而 `src/commands.ts` 则是命令注册中心。
 
 ### 关键理解
 
@@ -401,7 +401,7 @@ flowchart TD
 ### 这个模块做什么
 
 它负责“程序级初始化入口”。  
-最重要的是 [entrypoints/init.ts](src/entrypoints/init.ts)。
+最重要的是 `src/entrypoints/init.ts`。
 
 ### 关键观察
 
@@ -455,7 +455,7 @@ flowchart TD
 ### 这个模块做什么
 
 长期记忆系统。  
-核心文件是 [memdir.ts](src/memdir/memdir.ts)。
+核心文件是 `src/memdir/memdir.ts`。
 
 ### 关键能力
 
@@ -523,7 +523,7 @@ flowchart TD
 ### 这个模块做什么
 
 顶层屏幕组件。  
-虽然目录不大，但 [REPL.tsx](src/screens/REPL.tsx) 非常关键。
+虽然目录不大，但 `src/screens/REPL.tsx` 非常关键。
 
 ### 阅读提醒
 
