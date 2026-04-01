@@ -41,7 +41,7 @@ flowchart TD
 
 ## 本章在主链路中的位置
 
-如果说第 2 章是在搭地图，第 3 章是在看程序怎样启动，第 5 章是在看输入怎样进入系统，那么这一章就是整条主链路的核心。  
+如果说第 2 章是在搭地图，第 3 章是在看程序怎样启动，第 5 章是在看输入怎样进入系统，那么这一章就是整条主链路的核心。
 读者常常会在这里第一次真正感受到“大型 Agent 系统的执行心脏是什么样子的”。
 
 读这一章时要记住一句话：
@@ -52,7 +52,7 @@ flowchart TD
 
 ### 原因一：这里的难点不是语法，而是控制流
 
-很多读者会说“代码我都认识，为什么还是看不懂”。  
+很多读者会说“代码我都认识，为什么还是看不懂”。
 原因在于这一章难的不是 TypeScript 语法，而是多阶段、流式、可中断、可回写的控制流。
 
 ### 原因二：这里同时夹带了很多横切能力
@@ -71,8 +71,8 @@ flowchart TD
 
 ### 原因三：读者容易把“会话状态”和“单轮状态”混为一谈
 
-这是这一章最典型的概念错误。  
-`QueryEngine` 关心的是多轮会话级状态，`query()` 关心的是一次请求内部的执行循环。  
+这是这一章最典型的概念错误。
+`QueryEngine` 关心的是多轮会话级状态，`query()` 关心的是一次请求内部的执行循环。
 只要这个边界混了，后面看工具回写和上下文累积就会反复出错。
 
 ## 学这一章的正确顺序
@@ -119,7 +119,7 @@ flowchart TD
 
 ## 6.3 `query.ts` 的职责
 
-`query.ts` 更像一台流式状态机。  
+`query.ts` 更像一台流式状态机。
 它每次接收：
 
 - 当前消息列表
@@ -145,6 +145,147 @@ flowchart TD
 8. 如果出现工具调用，则走工具执行环
 9. 将工具结果重新放回消息流，继续下一轮
 10. 若没有后续工具，则正常结束本轮查询
+
+### `QueryEngine` 持有的会话级状态必须按字段理解
+
+`QueryEngine.ts` 最值得细读的不是某个工具分支，而是类字段本身。它们几乎就是一份“会话级运行时规格”：
+
+| 字段 | 作用 | 设计含义 |
+| --- | --- | --- |
+| `mutableMessages` | 当前会话内持续增长的消息账本 | 会话不是一次请求，而是一条持续累积的事实链。 |
+| `abortController` | 当前会话共享的中断控制器 | 中断不是局部函数行为，而是贯穿模型、工具和流式输出的会话级控制。 |
+| `permissionDenials` | 收集本轮及历史工具拒绝信息 | 最终结果需要知道哪些动作被拒绝过，而不只是当前消息内容。 |
+| `totalUsage` | 累积 token/cost 使用量 | 成本统计是会话级的，而不是只看最后一次响应。 |
+| `readFileState` | 读文件缓存与文件状态信息 | 后续记忆注入、文件快照、重复读取规避都会依赖这类缓存。 |
+| `discoveredSkillNames` | 本轮发现过的技能名集合 | 这是一个典型的“跨两个阶段但不跨全部会话”的辅助状态。 |
+| `loadedNestedMemoryPaths` | 已注入的 nested memory 路径集合 | 用于避免在长会话里重复注入同一批 memory 文件。 |
+
+这张表给出的启发非常重要：
+`QueryEngine` 并不是“包一层函数调用”的轻量包装器，而是把多轮对话里那些不能丢失、又不适合塞进单轮状态机的内容集中存放起来。
+
+### `submitMessage()` 不是单步动作，而是完整的会话入口
+
+阅读 `submitMessage()` 时，最容易忽略它的阶段数量。根据源码，它至少做了以下十件事：
+
+1. 从配置中提取本轮所需的命令、工具、MCP 客户端、预算和中断配置。
+2. 重新设置当前 cwd，并初始化本轮技能发现集合。
+3. 包装 `canUseTool`，把工具权限拒绝统一收集到 `permissionDenials`。
+4. 构造 `processUserInputContext`，把工具池、AppState 读写器、读文件缓存等会话依赖打包好。
+5. 处理 orphaned permission 等特殊恢复路径。
+6. 调用 `processUserInput()`，把原始输入规范化成消息集合与控制信息。
+7. 先把用户消息并入 `mutableMessages`，再在必要时立即写入 transcript。
+8. 根据 Slash Command 或其它输入副作用更新 `toolPermissionContext`、主模型或技能/插件缓存。
+9. 先产出 system init message，让外部消费者知道本轮工具池、模型、权限模式与插件状态。
+10. 若 `shouldQuery` 为真，再进入 `query()` 主循环，持续消费流式事件、工具结果和最终终止原因。
+
+从系统设计角度看，`submitMessage()` 相当于把三个原本容易散开的阶段强行绑成了一个正式入口：
+
+- 输入规范化阶段
+- 会话状态落账阶段
+- 单轮求值启动阶段
+
+少了任何一个阶段，后面的恢复语义或执行语义都会出现裂缝。
+
+### 为什么“用户消息先写 transcript 再进 query”是硬约束
+
+源码里有一段非常值得作为教材重点讲解的注释：
+在进入 `for await (const message of query(...))` 之前，`QueryEngine` 会在持久化开启的情况下先把用户新消息写入 transcript。
+
+这一步不是性能优化，而是恢复语义保护。它解决的是这样一个问题：
+
+1. 用户已经提交输入。
+2. 系统已经接受输入并开始准备查询。
+3. 但是 API 还没来得及回任何 token，进程就被杀掉了。
+
+如果这时 transcript 里还没有这条用户消息，恢复系统会误以为“这一轮从未发生过”。
+而先写 transcript 后，即使还没有任何 assistant 输出，也能明确保留“系统已经接受了这条用户输入”的事实。
+
+这一点非常适合作为跨语言重建时的设计约束：
+
+> 只要系统已经接受了用户输入，这一事实就应尽早进入可恢复账本，而不应把它与 API 成功返回绑定在一起。
+
+### `query.ts` 中的 `State` 是单轮状态机的真正核心
+
+教材里如果只说“`State` 是运行状态”，远远不够。源码中的 `State` 字段各有明确职责：
+
+| 字段 | 含义 | 为什么存在 |
+| --- | --- | --- |
+| `messages` | 本轮当前使用的消息窗口 | 它会被 compact、tool result 回写和 continuation 提示不断改写。 |
+| `toolUseContext` | 本轮工具上下文 | 工具池、AppState、读文件缓存、queryTracking 都在这里汇聚。 |
+| `autoCompactTracking` | 自动压缩跟踪状态 | 用于记录已 compact 的轮次和后续统计。 |
+| `maxOutputTokensRecoveryCount` | `max_output_tokens` 恢复计数 | 防止恢复路径无限重试。 |
+| `hasAttemptedReactiveCompact` | 是否已尝试响应式压缩 | 防止 prompt-too-long 和 stop hook 形成死循环。 |
+| `maxOutputTokensOverride` | 当前轮输出 token 上限覆盖值 | 支撑“先 8k，再 64k”这类升级重试策略。 |
+| `pendingToolUseSummary` | 异步生成中的工具摘要 Promise | 允许摘要生成与下一轮 API 调用并行进行。 |
+| `stopHookActive` | 停止 hook 是否处于生效态 | 用于区分正常收尾与 hook 触发后的阻塞继续。 |
+| `turnCount` | 当前单轮递归中的逻辑 turn 数 | 用于 maxTurns、附件统计与 continuation 逻辑。 |
+| `transition` | 上一次继续的原因 | 让调试和测试能知道是何种恢复路径触发了继续。 |
+
+这张表说明，`State` 不是一个“随便塞些布尔值”的杂项对象，而是一份精心切分的控制平面。
+
+### `transition.reason` 列表就是主循环的恢复地图
+
+源码里多次出现 `state = { ... transition: { reason: ... } }`。
+这类字段非常值得在教材中单独强调，因为它们把复杂控制流变成了可解释的“继续原因”集合。已出现的重要原因包括：
+
+- `collapse_drain_retry`
+- `reactive_compact_retry`
+- `max_output_tokens_escalate`
+- `max_output_tokens_recovery`
+- `stop_hook_blocking`
+- `token_budget_continuation`
+- `next_turn`
+
+这些名字的价值不在于词面，而在于它们把“为什么这一轮没有结束”记录成了显式状态。
+对于需要跨语言重写的人来说，这是一个非常重要的经验：
+复杂状态机最怕隐式继续；把继续原因结构化，调试、测试和恢复都会轻松很多。
+
+### `buildQueryConfig()` 的真正价值不是小，而是“冻结”
+
+`query/config.ts` 只有很短一段代码，但它的设计意义远超文件长度。
+源码表明，`buildQueryConfig()` 会在进入 `query()` 时一次性快照：
+
+- `sessionId`
+- `streamingToolExecution`
+- `emitToolUseSummaries`
+- `isAnt`
+- `fastModeEnabled`
+
+这说明它承担的是“冻结本轮不可变环境”的职责。
+一旦把这些值混进 `State`，或者在循环内部随取随用，就会出现两类问题：
+
+1. 本轮执行过程中环境变化导致行为不一致。
+2. 状态机测试难以复现，因为同一输入可能在循环中途读到不同外部值。
+
+因此，`QueryConfig` 不是代码整理技巧，而是稳定状态机的必要条件。
+
+### `query()` 更像“可重启求值器”，而不是“一次 API 调用”
+
+把 `query()` 错看成“封装 API 请求的异步函数”，是理解整个系统时最常见的偏差。
+从源码可知，它至少具备以下四种“可重启”机制：
+
+1. 因 compact 或 context collapse 而重新组织消息窗口后重试。
+2. 因 `max_output_tokens` 而插入 meta message 后继续。
+3. 因工具调用而把 `tool_result` 回写后进入下一 turn。
+4. 因 stop hook 或 token budget 提示而重新追加消息再继续。
+
+这意味着 `query()` 的正确类比对象不是“请求函数”，而是“带显式过渡条件的求值循环”。
+
+### `yield` 与 `recordTranscript` 的配合关系
+
+`QueryEngine` 与 `query()` 的配合里，还有一层很细但很关键的机制：
+不是所有消息都以同样的时机被记入 `mutableMessages` 和 transcript。
+
+源码可以概括出以下原则：
+
+- assistant、user、compact boundary 这类核心消息会驱动正式的 transcript 落账。
+- progress 与 attachment 也可能在特定场景下被立即并入 `messages` 并 fire-and-forget 持久化，目的是保证 dedupe 与后续 parent 链正确。
+- tombstone 属于控制信号，不是正常对话内容。
+- stream_event 主要承担流式增量和 usage 累积职责，不直接等同于 transcript 事实。
+
+这再次说明：
+
+> 系统内部的“消息流”与磁盘上的“恢复账本”既高度相关，又不能简单画等号。
 
 ## 6.5 查询主循环时序图
 
@@ -226,7 +367,7 @@ sequenceDiagram
 
 ## 6.8 `buildQueryConfig()` 的价值
 
-`query/config.ts` 看起来很小，但非常有阅读价值。  
+`query/config.ts` 看起来很小，但非常有阅读价值。
 它把 session、env、statsig gate 这些“每轮固定配置”集中快照下来，避免循环中多次动态读取。
 
 这是一种很典型的工程技巧：
@@ -235,7 +376,7 @@ sequenceDiagram
 
 ## 6.9 `services/api/claude.ts` 的位置
 
-`query.ts` 自己不直接关心 HTTP 细节，而把模型调用交给 `services/api/claude.ts`。  
+`query.ts` 自己不直接关心 HTTP 细节，而把模型调用交给 `services/api/claude.ts`。
 后者负责：
 
 - 组装 API schema

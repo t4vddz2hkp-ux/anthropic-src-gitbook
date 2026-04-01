@@ -45,7 +45,7 @@ flowchart TD
 
 > 这个系统不过是在内存里维护一串消息，然后不停调模型。
 
-这只对了一小半。  
+这只对了一小半。
 真正的工程系统必须回答更困难的问题：
 
 - 当前状态放在哪里？
@@ -81,7 +81,7 @@ flowchart TD
 
 ### 它解决什么问题
 
-它更像“运行时基础状态”，供大量模块读取。  
+它更像“运行时基础状态”，供大量模块读取。
 读者可以把它类比成：
 
 > 程序启动后就存在的全局基础坐标系。
@@ -120,14 +120,14 @@ flowchart TD
 
 ### 为什么 AppState 会这么大
 
-因为这个系统不是单页表单，而是一个长期交互、带后台任务、带扩展、带远程连接的终端应用。  
+因为这个系统不是单页表单，而是一个长期交互、带后台任务、带扩展、带远程连接的终端应用。
 状态自然会很多。
 
 ## 第三层：状态变化不是改完就完了
 
 ### `onChangeAppState.ts` 的意义
 
-读者经常会低估这个文件，因为它不像 `query.ts` 那么显眼。  
+读者经常会低估这个文件，因为它不像 `query.ts` 那么显眼。
 但它很关键，因为它负责把“状态变化”翻译成一系列副作用。
 
 例如：
@@ -140,7 +140,7 @@ flowchart TD
 
 ### 这说明什么
 
-AppState 不是一个纯粹的内存对象。  
+AppState 不是一个纯粹的内存对象。
 它和：
 
 - 外部控制通道
@@ -154,12 +154,12 @@ AppState 不是一个纯粹的内存对象。
 
 ### 为什么消息必须持久化
 
-如果消息只存在内存里，进程一退出，整个会话就断了。  
+如果消息只存在内存里，进程一退出，整个会话就断了。
 所以系统要把重要消息写入 transcript。
 
 ### `sessionStorage.ts` 在做什么
 
-这个文件不是“小工具合集”，而是会话持久化中枢。  
+这个文件不是“小工具合集”，而是会话持久化中枢。
 里面会处理：
 
 - transcript 路径
@@ -196,7 +196,7 @@ AppState 不是一个纯粹的内存对象。
 
 ## 为什么用户消息要先写 transcript 再等 API
 
-这是整套系统很工程化的一点。  
+这是整套系统很工程化的一点。
 如果用户刚发消息，API 还没回，进程就被杀了：
 
 - 如果先不写 transcript，这条消息就丢了
@@ -208,7 +208,7 @@ AppState 不是一个纯粹的内存对象。
 
 ### 为什么子代理不能混写到主 transcript
 
-因为子代理是独立工作单元。  
+因为子代理是独立工作单元。
 如果所有消息全混在主 transcript 里，后续查看、恢复、调试都会非常困难。
 
 ### 源码里怎么做
@@ -253,7 +253,7 @@ AppState 不是一个纯粹的内存对象。
 | mutableMessages / QueryEngine state | 当前会话执行中的消息与控制状态 | `QueryEngine.ts` |
 | transcript / sessionStorage | 持久化会话记录和相关元数据 | `utils/sessionStorage.ts` |
 
-读者经常问：“为什么不只保留一个 state store？”  
+读者经常问：“为什么不只保留一个 state store？”
 答案是：因为这几层承担的是不同类型的时间尺度和职责。
 
 ## 第八层：状态变化如何向外扩散
@@ -276,7 +276,7 @@ AppState 不是一个纯粹的内存对象。
 
 ## 第九层：为什么这套系统需要这么多“记住自己”的机制
 
-因为它不是一次性脚本，而是长期交互系统。  
+因为它不是一次性脚本，而是长期交互系统。
 长期交互系统天然会遇到：
 
 - 用户中断
@@ -318,6 +318,155 @@ flowchart TD
 3. 为什么用户消息要在 API 返回前先写 transcript？
 4. 为什么 progress 不应该和 transcript message 混在一起？
 5. 子代理为什么需要自己的 transcript 路径？
+
+### `AppState` 应按状态簇理解，而不是按字段长度理解
+
+`AppStateStore.ts` 中的 `AppState` 非常庞大，但它并不是一棵无结构的大树。教材里更合适的读法，是把它拆成若干状态簇：
+
+| 状态簇 | 典型字段 | 作用 |
+| --- | --- | --- |
+| 配置簇 | `settings`、`mainLoopModel`、`verbose`、`thinkingEnabled` | 控制全局行为与执行偏好。 |
+| 交互簇 | `expandedView`、`footerSelection`、`statusLineText` | 控制当前界面与交互状态。 |
+| 权限簇 | `toolPermissionContext`、`isUltraplanMode` 等 | 控制工具与计划模式的运行边界。 |
+| 任务簇 | `tasks`、`foregroundedTaskId`、`viewingAgentTaskId` | 管理后台任务、子代理与前台焦点。 |
+| 扩展簇 | `mcp`、`plugins`、`agentDefinitions` | 管理外部能力与扩展状态。 |
+| 辅助治理簇 | `fileHistory`、`attribution`、`notifications`、`elicitation`、`sessionHooks` | 承载审计、通知、补充输入和会话钩子。 |
+| 远程/桥接簇 | `replBridge*`、`remoteConnectionStatus`、`remoteBackgroundTaskCount` | 管理远程会话、桥接模式与外部联动。 |
+
+这样拆开之后，就能看出一件事：
+`AppState` 并不是一个“前端界面 store”，而是一棵覆盖界面、权限、任务、扩展和远程协作的应用运行态树。
+
+### `onChangeAppState.ts` 是“状态副作用桥”，而不是普通监听器
+
+教材中如果只说“状态变化后会触发副作用”，还不足以体现这个文件的意义。
+`state/onChangeAppState.ts` 真正承担的是一个非常关键的桥接职责：把纯内存状态变化翻译成对外可见的系统副作用。
+
+源码中至少可以观察到以下几类桥接：
+
+1. 权限模式变化后，要同步外部会话元数据，并通知 SDK/CCR 通道。
+2. 主模型变化后，要写回用户设置，并更新 bootstrap 层的模型覆盖值。
+3. 视图展开状态变化后，要同步到全局配置，保持下次启动仍能复现 UI 偏好。
+4. `verbose` 或面板显隐变化后，要写回持久化配置。
+5. `settings.env` 变化后，要清除认证缓存并重新应用环境变量。
+
+这说明状态管理在这里采用的是一种相当成熟的分层方式：
+
+- `setAppState` 负责声明性地改变内存状态。
+- `onChangeAppState` 负责把某些变化扩散到外部世界。
+
+这种拆分可以避免把“状态修改”和“外部副作用”混写在所有调用点里。
+
+### transcript 写入的关键规则都藏在 `sessionStorage.ts`
+
+若只从功能说明理解 transcript，很容易觉得它只是“消息写文件”。源码其实把 transcript 设计成了一份带严格规则的事实账本。
+
+#### 规则一：只有特定消息类型属于 transcript 主链
+
+`isTranscriptMessage(entry)` 明确限定只有四类消息进入 transcript 主链：
+
+- `user`
+- `assistant`
+- `attachment`
+- `system`
+
+这条规则很关键，因为它决定了“哪些内容属于未来恢复时必须保留的事实”。
+
+#### 规则二：参与 parent 链的范围比 transcript 还要更窄
+
+`isChainParticipant(m)` 又进一步规定：
+即使某条消息被写入 transcript，也未必参与 `parentUuid` 链；`progress` 明确被排除在链外。
+
+这意味着 transcript 至少包含两层语义：
+
+1. 可以写到事实账本里的条目。
+2. 真正参与会话逻辑链的核心条目。
+
+教材中非常值得强调这一点，因为很多恢复 bug 就是由“写入了不该参与 parent 链的东西”引发的。
+
+#### 规则三：session file 不是一启动就创建，而是在需要时 materialize
+
+`insertMessageChain()` 中有一个很有代表性的设计：
+只有当这批待写消息里首次出现 `user` 或 `assistant` 消息时，session file 才会真正 materialize。单独的 hook progress 或零散附件不会单独把会话文件提前落盘。
+
+这说明 sessionStorage 在这里追求的是：
+
+- 不为了短暂 UI 杂音过早创建会话文件。
+- 让真正构成对话事实的消息来决定会话账本的落地时机。
+
+#### 规则四：每条写入消息都会被补齐会话坐标
+
+源码在写入 `TranscriptMessage` 时，会统一补写：
+
+- `sessionId`
+- `cwd`
+- `version`
+- `gitBranch`
+- `slug`
+- `userType`
+- `entrypoint`
+
+这一步非常有教材意义，因为它说明 transcript 保存的并不只是“消息正文”，而是“带会话坐标和版本语义的消息事实”。
+
+### `parentUuid`、`logicalParentUuid` 与 compact boundary 的特殊语义
+
+`insertMessageChain()` 中还有一个非常值得反复讲解的细节：
+compact boundary 写入时，`parentUuid` 会被置空，而之前的父节点则被保存在 `logicalParentUuid` 中。
+
+这背后是一个非常精细的恢复语义设计：
+
+- 从“主链遍历”角度看，compact boundary 需要成为新的截断点。
+- 从“语义解释”角度看，又不能完全丢失它在压缩前接在谁后面这一事实。
+
+因此系统同时保留了两条关系：
+
+1. 恢复与链遍历使用的真实 `parentUuid`。
+2. 说明压缩边界原本逻辑位置的 `logicalParentUuid`。
+
+这一设计非常适合作为跨语言重建时必须保留的高级语义之一。
+如果只保留一条父链，compact 后的恢复与继续推理会很容易出错。
+
+### `recordTranscript()` 不是“把数组再写一遍”，而是增量去重器
+
+`recordTranscript(messages)` 的实现同样不能被简化理解。根据源码，它至少做了三件关键事情：
+
+1. 调用 `cleanMessagesForLogging()`，先清洗出适合写入账本的消息集合。
+2. 对比当前 session 已记录的 UUID 集合，只挑出真正新增的消息。
+3. 维护 `startingParentUuid`，确保即使前缀消息都已记录，新写入片段仍能正确接到已有链尾。
+
+这里的 `startingParentUuid` 尤其重要。它解决的是这样的问题：
+
+- 当前要写入的消息切片里，前半段可能已经落过盘。
+- 新增消息不一定从链头开始。
+- 如果不记录“前缀里最后一个已存在的链参与者”，后续新增消息就会找不到正确父节点。
+
+这说明 `recordTranscript()` 本质上是一个“增量链拼接器”，而不是文件 append 包装。
+
+### 为什么子代理 transcript 必须独立建路径
+
+`getAgentTranscriptPath(agentId)` 与 `setAgentTranscriptSubdir()` 表明，子代理的 transcript 被明确放到会话目录下的独立子路径中。
+这么做至少有四个理由：
+
+1. 主线程会话与子代理会话的消息链不同，不能混写。
+2. 子代理往往有自己的恢复语义和输出视图。
+3. 若混写在主 transcript 中，多代理并行会极大增加 parent 链混乱概率。
+4. 调试某个 agent 的行为时，需要能单独读取它的事实账本。
+
+因此，子代理 transcript 不是“主 transcript 的附页”，而是同一会话空间中的平行事实账本。
+
+### 恢复依赖的是“事实账本”，不是 UI 快照
+
+教材最后必须把这一点说透：
+整套恢复系统之所以复杂，恰恰是因为它恢复的不是屏幕像素，也不是某个 React 组件树，而是“系统曾经发生过哪些具有持续语义的事实”。
+
+这也是以下设计同时成立的根本原因：
+
+- progress 不进主链。
+- 用户消息先落账。
+- compact boundary 要特殊维护父链。
+- 子代理要有独立 transcript。
+- AppState 变化要经过副作用桥向外扩散。
+
+只有在“恢复的是事实，不是画面”这个前提下，上述规则才会显得连贯一致。
 
 ## 30.10 语言无关重建视角
 

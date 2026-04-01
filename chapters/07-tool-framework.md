@@ -41,12 +41,12 @@ flowchart TD
 
 ## 本章在能力层中的位置
 
-这一章是第三阶段真正的转折点。  
+这一章是第三阶段真正的转折点。
 读者在这里会第一次明确看到：这套系统不是“先有很多功能，再把它们拼起来”，而是“先定义统一能力协议，再让所有功能按协议接入”。
 
 ## 为什么很多读者会在这一章第一次感到“工程味”
 
-因为 `Tool.ts` 展现出来的不是业务逻辑，而是协议设计。  
+因为 `Tool.ts` 展现出来的不是业务逻辑，而是协议设计。
 一旦开始讲协议、schema、权限接口、并发标记、结果上限和渲染接口，项目就从“功能堆叠”变成了“平台设计”。
 
 ## 读这一章时要抓住的三个对象
@@ -73,7 +73,7 @@ flowchart TD
 
 ## 7.2 `buildTool()` 的设计价值
 
-在 `Tool.ts` 下半部分，`buildTool()` 做了一件非常关键的事：  
+在 `Tool.ts` 下半部分，`buildTool()` 做了一件非常关键的事：
 给工具定义补上安全默认值。
 
 默认值包括：
@@ -114,9 +114,111 @@ flowchart TD
 3. 对两者进行 deny 过滤
 4. 排序并按名字去重
 
-其中一个细节很值得注意：  
-它会保持 built-in tools 作为连续前缀，以维持 prompt cache 稳定性。  
+其中一个细节很值得注意：
+它会保持 built-in tools 作为连续前缀，以维持 prompt cache 稳定性。
 这表明工具列表不仅影响功能，也影响缓存命中率。
+
+### `Tool` 协议应按字段族来理解
+
+如果把 `Tool.ts` 从头到尾通读一遍，会发现一个工具对象包含的字段非常多。
+为了防止陷入“字段清单记忆”，可以把它们分成六个字段族：
+
+| 字段族 | 典型字段 | 回答的问题 |
+| --- | --- | --- |
+| 身份族 | `name`、`aliases`、`searchHint`、`userFacingName()` | 这个能力对模型和界面分别叫什么。 |
+| 契约族 | `inputSchema`、`inputJSONSchema`、`outputSchema` | 这个能力接收什么、返回什么。 |
+| 执行族 | `call()`、`inputsEquivalent()` | 真正执行时要做什么。 |
+| 治理族 | `validateInput()`、`checkPermissions()`、`isReadOnly()`、`isDestructive()`、`interruptBehavior()` | 在什么条件下允许执行，以及执行的风险轮廓是什么。 |
+| 并发与预算族 | `isConcurrencySafe()`、`maxResultSizeChars`、`toAutoClassifierInput()` | 是否能并发、结果多大算超限、如何进入安全分类器。 |
+| 展示族 | `description()`、`getToolUseSummary()`、`getActivityDescription()`、渲染函数 | 执行前、执行中、执行后如何向模型与 UI 解释自己。 |
+
+按这六组来理解，会更容易看出一个事实：
+Tool 在这里不是“业务函数 + 参数校验”，而是一份同时面向模型、调度器、安全系统和 UI 的完整能力声明。
+
+### `buildTool()` 的默认值体现的是“保守默认”哲学
+
+源码中的 `TOOL_DEFAULTS` 很值得全文讲解，因为每一个默认值都带着明确态度：
+
+| 默认值 | 含义 | 工程意义 |
+| --- | --- | --- |
+| `isEnabled -> true` | 默认可启用 | 工具作者若不特别关闭，能力默认进入可用候选。 |
+| `isConcurrencySafe -> false` | 默认不允许并发 | 并发必须靠显式证明，而不是乐观假设。 |
+| `isReadOnly -> false` | 默认不认定为只读 | 系统宁可高估风险，也不低估风险。 |
+| `isDestructive -> false` | 默认不认定为破坏性 | 真正破坏性工具需要显式声明，以便治理系统单独处理。 |
+| `checkPermissions -> allow + updatedInput` | 默认把工具交给通用权限系统 | 工具自身如无特殊规则，则落入统一权限框架。 |
+| `toAutoClassifierInput -> ''` | 默认不进入自动分类器转录 | 只有安全相关工具才需要主动暴露分类器输入。 |
+| `userFacingName -> name` | 默认界面名等于工具名 | 降低工具定义的样板负担。 |
+
+这里最有教材价值的是前两个 `false`：
+
+- 默认不并发。
+- 默认不只读。
+
+这是一种典型的“安全方向默认保守”设计。
+对于具有外部副作用的能力系统而言，这比“所有工具默认可并发、默认只读，作者自己再来纠正”要稳健得多。
+
+### `ToolUseContext` 其实是一个缩小版运行时
+
+很多人在初读时只把 `ToolUseContext` 当成“工具执行时传进去的环境参数”。源码表明，它远不止此。
+这个对象可以按四个部分理解：
+
+1. 运行配置面：`options.commands`、`options.tools`、`options.mainLoopModel`、`options.mcpClients`、`options.refreshTools`。
+2. 状态读写面：`getAppState()`、`setAppState()`、`setAppStateForTasks()`、`updateFileHistoryState()`、`updateAttributionState()`。
+3. 控制与中断面：`abortController`、`setInProgressToolUseIDs()`、`setHasInterruptibleToolInProgress()`、`requestPrompt()`。
+4. 会话现场面：`messages`、`readFileState`、`loadedNestedMemoryPaths`、`discoveredSkillNames`、`contentReplacementState`、`queryTracking`。
+
+之所以说它像一个“缩小版运行时”，是因为一个工具在执行时所需的绝大多数环境，都已经被压缩到这个对象里。
+跨语言重建时，只要 `ToolUseContext` 的表达能力不够，后面的权限决策、文件状态缓存、动态刷新工具池、任务注册和 hook 回写都会立刻变得困难。
+
+### 工具的“可见性”“可执行性”“成功执行”是三件不同的事
+
+教材里非常有必要把这三件事分开，否则工具系统会被误解为“出现在列表里就等于一定能跑”。
+
+#### 第一层：可见性
+
+工具是否出现在当前工具池，取决于 `getTools()`、deny rules、simple mode、REPL mode、feature gate 和 `isEnabled()`。
+这一层回答的是：“模型看不看得见这个工具。”
+
+#### 第二层：可执行性
+
+即使模型看见了工具，在真正执行时仍要通过 schema 校验、`validateInput()`、`checkPermissions()`、hook 和权限模式判定。
+这一层回答的是：“当前这次调用是否被允许启动。”
+
+#### 第三层：成功执行
+
+调用被允许启动以后，还可能因为运行时错误、外部服务错误、结果超限、MCP 错误或中断而失败。
+这一层回答的是：“启动之后是否真的得到有效结果。”
+
+把这三层分清楚，对理解 `tools.ts` 与 `toolExecution.ts` 的边界尤其关键。
+
+### `tools.ts` 同时维护“源工具集合”和“当前能力面”
+
+`getAllBaseTools()`、`getTools()` 和 `assembleToolPool()` 解决的并不是同一个问题：
+
+| 函数 | 解决的问题 |
+| --- | --- |
+| `getAllBaseTools()` | 当前构建与环境下，理论上可能存在哪些内建工具。 |
+| `getTools(permissionContext)` | 在当前权限模式和运行模式下，哪些内建工具应暴露给模型。 |
+| `assembleToolPool(permissionContext, mcpTools)` | 把当前可见的内建工具与 MCP 工具拼成完整能力面。 |
+
+这种分层非常重要，因为系统必须同时回答两个问题：
+
+1. “仓库里有哪些能力实现？”
+2. “当前这一轮查询真正能看到哪些能力？”
+
+前者是代码资产清单，后者是运行时能力面。把二者合并，会让权限过滤、REPL 特殊模式、MCP 动态接入和 prompt cache 稳定性变得十分混乱。
+
+### 内建工具为何必须作为连续前缀
+
+`assembleToolPool()` 里那段“built-ins 作为连续前缀”的逻辑看起来像性能小技巧，实际上影响的是系统提示词缓存稳定性。源码注释明确指出：
+
+- 系统会把工具列表纳入 prompt cache 计算。
+- 若平铺排序让某个 MCP 工具插进内建工具中间，就会改变后续缓存断点。
+- 于是看似无害的动态 MCP 接入，可能导致整段系统提示词缓存全部失效。
+
+因此，`assembleToolPool()` 不只是把工具数组拼起来，而是在维护一个对缓存友好的能力顺序。
+这类细节非常能体现大系统实现与教材写作应关注的重点：
+真正重要的设计，常常藏在“为什么数组要这样排序”这类微小选择里。
 
 ## 7.5 工具系统的三重面向
 
@@ -148,7 +250,7 @@ flowchart TD
 
 ## 7.6 `services/tools/` 的作用
 
-光有工具协议还不够，还需要执行层来调度它们。  
+光有工具协议还不够，还需要执行层来调度它们。
 这部分主要由：
 
 | 文件 | 作用 |
