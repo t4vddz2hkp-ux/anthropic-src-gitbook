@@ -7,7 +7,7 @@
 
 ## 先修关系
 - 建议先读第 6 章和第 16 章，先知道 query 主循环怎样需要流式层配合。
-- 如果第 27 章已经浏览过，你会更容易把 API 阶段挂到请求时间线中。
+- 如果第 27 章已经浏览过，将更容易把 API 阶段挂到请求时间线中。
 - 本章和第 28 章互为左右手：一个负责模型流，一个负责工具流。
 
 ## 关键词
@@ -254,12 +254,48 @@ flowchart TD
    - 特性开关
 3. 最后再回到具体代码
 
-这样你会把它看成架构层，而不是网络细节层。
+这样将把它看成架构层，而不是网络细节层。
+
+## 19.12 语言无关重建视角
+
+API 层在这套系统中承担的是“模型协议适配器”角色，而不是普通 HTTP 客户端。跨语言重写时，至少要保留四类职责：
+
+1. Provider 屏蔽：把 Anthropic、Bedrock、Foundry、Vertex 等差异吸收在适配层内部。
+2. 请求装配：把内部消息、工具 schema、system prompt 与 beta headers 翻译成 provider 可接受的 payload。
+3. 流式事件归一化：把 provider 的 message_start、delta、tool_use、stop 等事件转成内部统一事件流。
+4. 统计与治理：记录 usage、cost、cache、fallback、错误与重试信息。
+
+### 需要显式建模的对象
+
+为了保证 API 层可迁移，建议显式定义以下对象：
+
+- `ProviderRequest`
+- `ProviderStreamEvent`
+- `NormalizedStreamEvent`
+- `UsageLedger`
+- `ProviderCapabilities`
+
+这些对象会让“上层业务逻辑”和“下层网络协议”之间形成清晰的边界。
+
+### 最小实现顺序
+
+1. 先实现 provider 无关的内部请求结构。
+2. 实现一个 provider 适配器，把内部请求翻译成外部 payload。
+3. 实现流式事件解析器，把外部流事件统一成内部流事件。
+4. 实现 usage 与错误记录。
+5. 最后再补入 cache、fallback、beta headers 与多 provider 特性差异。
+
+### 重建时最容易遗漏的系统特征
+
+- 流式不仅影响 UI，还会反向影响主循环与工具执行方式。
+- 工具 schema 必须与消息 payload 一并装配，而不是临时拼接。
+- usage/cost 不是日志附属品，而是调度与预算策略的重要输入。
+- provider 差异若上溢到 `query()`，主循环很快会被实现细节污染。
 
 ## 章末小结
-- 本章围绕“provider 屏蔽、流式事件和 usage/cost 治理”重建了一层稳定理解，不让你只记零散函数名或目录名。
+- 本章围绕“provider 屏蔽、流式事件和 usage/cost 治理”重建了一层稳定理解，避免只记零散函数名或目录名。
 - 真正需要沉淀下来的，不只是 `provider abstraction`、`stream event`、`usage/cost` 这几个词，而是它们在 `API Request Payload`、`Stream Event Envelope`、`Usage/Cost Ledger` 里的相互位置。
-- 如果你后续在 第 27 章和第 28 章 中再次迷路，优先回看本章的“先修关系、正文图解、关键数据结构”三部分。
+- 如后续在 第 27 章和第 28 章 中再次迷路，优先回看本章的“先修关系、正文图解、关键数据结构”三部分。
 
 ## 章末自测
 1. 不看原文，用自己的话重述本章围绕“provider 屏蔽、流式事件和 usage/cost 治理”到底解决了什么问题。
