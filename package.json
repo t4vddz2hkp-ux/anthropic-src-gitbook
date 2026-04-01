@@ -16,6 +16,8 @@
   "devDependencies": {
     "honkit": "6.1.7",
     "honkit-plugin-local-mermaid": "file:./plugins/honkit-plugin-local-mermaid",
-    "mermaid": "11.13.0"
+    "mermaid": "11.13.0",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.54.2"
   }
 }
